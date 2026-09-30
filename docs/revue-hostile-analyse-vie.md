@@ -157,8 +157,8 @@ notes seraient mal attribuées.
 douze autres — `intitule`, `url`, `note`, `resume`, `adequation`,
 `personalisation`… — ne sont créés qu'en partie, et cinq sont inatteignables.
 
-L火花 que j'ai vue à l'écran : `note` n'apparaît nulle part dans le code
-parsé. Les colonnes Noter et Justification seraient vides à l'écriture.
+Le cas le plus net : `note` n'apparaît nulle part dans le code parsé.
+Les colonnes Note et Justification seraient vides à l'écriture.
 
 **Contre-exemple** : une offre notée 8 s'écrit avec une note vide. Le
 classement par note — la fonction centrale du projet — disparaît du Sheet.
