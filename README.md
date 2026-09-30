@@ -8,9 +8,7 @@ Workflows n8n versioning en code TypeScript (n8n Workflow SDK), via
 | Workflow | ID n8n | Rôle |
 |---|---|---|
 | `Analyse V.I.E. quotidienne` | `xRmMRMGI8bOHBSN4` | Offres V.I.E. quotidiennes, filtrées, notées, écrites dans Google Sheets |
-| `Recherche V.I.E` | `E3ZNiLfQdBwLVazA` | Version antérieure du même traitement |
-| `Résumé Mail` | `IpIBKSubzcu0Iey4` | Résumé de mails du jour |
-| `Module Test` | `RFWwbhAvCi3Oux2l` | Bac à sable |
+
 
 ## Utilisation
 
