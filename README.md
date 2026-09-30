@@ -9,7 +9,6 @@ Workflows n8n versioning en code TypeScript (n8n Workflow SDK), via
 |---|---|---|
 | `Analyse V.I.E. quotidienne` | `xRmMRMGI8bOHBSN4` | Offres V.I.E. quotidiennes, filtrées, notées, écrites dans Google Sheets |
 
-
 ## Méthode
 
 Trois skills OpenCode dans `.opencode/skills/`, à invoquer par leur identifiant :
