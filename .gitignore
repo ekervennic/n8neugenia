@@ -1,0 +1,36 @@
+# ── Secrets n8n ────────────────────────────────────────────────
+# Ce fichier contient ton jeton d'acces n8n en clair. JAMAIS versionne.
+.n8ncli.json
+n8n/config/n8n-cli.json
+n8n/config/sync-state.json
+n8n/config/workflow-folders.json
+n8n/config/unconfigured-credentials.json
+*.accessToken
+!n8ncli.example.json
+
+# Cache local de l'etat distant : redondant avec n8n/workflows/
+n8n/config/cache/
+
+# ── Skill et tooling ───────────────────────────────────────────
+.agents/
+node_modules/
+package-lock.json
+dist/
+
+# ── Systeme et OS ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ── Divers ─────────────────────────────────────────────────────
+*.log
+.env
+.env.*
+
+# n8ncli ignored files
+n8n/config/sync-state.json
+n8n/config/unconfigured-credentials.json
+n8n/config/workflow-folders.json
+n8n/references/
