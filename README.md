@@ -10,6 +10,33 @@ Workflows n8n versioning en code TypeScript (n8n Workflow SDK), via
 | `Analyse V.I.E. quotidienne` | `xRmMRMGI8bOHBSN4` | Offres V.I.E. quotidiennes, filtrées, notées, écrites dans Google Sheets |
 
 
+## Méthode
+
+Trois skills OpenCode dans `.opencode/skills/`, à invoquer par leur identifiant :
+
+| Skill | ID | Rôle |
+|---|---|---|
+| Interview | `interview` | Éliciter la spécification avant tout code |
+| Revue hostile | `hostile-review` | Attaquer un workflow en six portes avant activation |
+| Développement guidé par le doute | `doubt-driven` | Ne rien affirmer sans preuve |
+
+Ils s'enchaînent : l'interview produit la spécification, la revue hostile
+l'attaque avant qu'elle ne coûte cher, le doute guidé empêche de rapporter un
+faux succès pendant l'implémentation.
+
+Trois documents dans `skills/`, produits de cette méthode sur le workflow
+`Analyse V.I.E. quotidienne` :
+
+| Document | Contenu |
+|---|---|
+| [`skills/specification-analyse-vie.md`](skills/specification-analyse-vie.md) | 10 exigences, chacune avec un critère d'acceptation falsifiable |
+| [`skills/introspection-doubt-driven.md`](skills/introspection-doubt-driven.md) | 12 défauts confirmés, dont une introspection sur la méthode elle-même |
+| [`skills/revue-hostile-analyse-vie.md`](skills/revue-hostile-analyse-vie.md) | Première exécution réelle, portes franchies et non franchies |
+
+> **`skills/` et `.opencode/skills/` sont deux choses différentes.** Le premier
+> contient des documents rédigés, le second des skills exécutables par
+> OpenCode.
+
 ## Utilisation
 
 ```bash
