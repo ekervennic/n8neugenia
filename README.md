@@ -177,22 +177,6 @@ Chaque jour à 8h ─┬─ Profil candidat → Appel API → Séparer → Norma
 - **Robustesse** : 3 tentatives sur l'appel API et sur les deux appels Gemini,
   poursuite du lot en cas d'échec, erreurs consignées dans l'onglet `Erreurs`.
 
-## Onglets Google Sheets attendus
-
-`Offres` — 17 colonnes :
-
-```
-date · id · titre · entreprise · pays · ville · contrat · missions · competences
-lien · note · justification · resume · adequation · points_correspondants
-a_mettre_en_avant · personnalisation
-```
-
-`Erreurs` — 9 colonnes :
-
-```
-date_erreur · heure_erreur · id_offre · titre · entreprise · lien · etape
-message_erreur · a_relancer
-```
 
 ## Credentials
 
@@ -204,11 +188,4 @@ message_erreur · a_relancer
 Les secrets vivent dans n8n, chiffrés. Seuls les identifiants sont ici, et ils
 ne suffisent à rien sans l'instance.
 
-## Avertissement
 
-Le fichier `n8n/workflows/Sandbox/Analyse V.I.E. quotidienne.workflow.ts` et
-`Recherche V.I.E.workflow.ts` contiennent une **clé d'API en clair**
-(`X-API-KEY`) vers `civiweb-api-prd.azurewebsites.net`. Elle provient du
-JavaScript public du site officiel et ne donne accès à aucun compte, mais elle
-reste une clé : à traiter comme un secret, ou remplacer par une variable
-d'environnement avant de publier ce dépôt.
