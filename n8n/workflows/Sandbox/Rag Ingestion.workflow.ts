@@ -4,12 +4,6 @@ const on_Form_Submission = trigger({
   config: { name: 'On Form Submission', parameters: { authentication: 'n8nUserAuth', formTitle: expr('Course'), formFields: { values: [{ fieldLabel: 'PDF', fieldType: 'file' }] }, options: {} }, position: [-368, -480], webhookId: 'f250e367-2d46-49a8-922e-62d69bb85458' }
 });
 
-const stash_PDF_as_Base64 = node({
-  type: 'n8n-nodes-base.code',
-  version: 2,
-  config: { name: 'Stash PDF as Base64', parameters: { jsCode: 'const items = $input.all();\nconst out = [];\n\nfor (const item of items) {\n  const binary = item.binary?.PDF;\n\n  if (!binary?.data) {\n    throw new Error(\'Le champ binaire PDF est absent.\');\n  }\n\n  const data = binary.data;\n  const fileName = binary.fileName || \'document.pdf\';\n  const mimeType = binary.mimeType || \'application/pdf\';\n\n  out.push({\n    json: {\n      ...item.json,\n      pdf_base64: data,\n      pdf_file_name: fileName\n    },\n    binary: {\n      PDF: {\n        data,\n        mimeType,\n        fileName\n      }\n    }\n  });\n}\n\nreturn out;' }, position: [-144, -480] }
-});
-
 const extract_PDF_Text = node({
   type: 'n8n-nodes-base.extractFromFile',
   version: 1.1,
@@ -31,7 +25,7 @@ const chunk_and_Normalize_Text = node({
 const limit = node({
   type: 'n8n-nodes-base.limit',
   version: 1,
-  config: { name: 'Limit', position: [1200, -480] }
+  config: { name: 'Limit', parameters: { maxItems: 10 }, position: [1200, -480] }
 });
 
 const process_in_Batches = node({
@@ -43,7 +37,7 @@ const process_in_Batches = node({
 const embed_and_Store_Batches = node({
   type: 'n8n-nodes-base.executeWorkflow',
   version: 1.3,
-  config: { name: 'Embed and Store Batches', parameters: { workflowId: { __rl: true, value: 'FYhCiothhv5jVAAZ', mode: 'list', cachedResultUrl: '/workflow/FYhCiothhv5jVAAZ', cachedResultName: 'Embed and Store Chunks' }, workflowInputs: { mappingMode: 'passThrough', value: {}, matchingColumns: [], schema: [{ id: 'text', displayName: 'text', required: false, defaultMatch: false, display: true, canBeUsedToMatch: true, type: 'string', removed: false }, { id: 'document_id', displayName: 'document_id', required: false, defaultMatch: false, display: true, canBeUsedToMatch: true, type: 'string', removed: false }, { id: 'file_name', displayName: 'file_name', required: false, defaultMatch: false, display: true, canBeUsedToMatch: true, type: 'string', removed: false }, { id: 'chunk_index', displayName: 'chunk_index', required: false, defaultMatch: false, display: true, canBeUsedToMatch: true, type: 'string', removed: false }, { id: 'ingested_at', displayName: 'ingested_at', required: false, defaultMatch: false, display: true, canBeUsedToMatch: true, type: 'string', removed: false }], attemptToConvertTypes: false, convertFieldsToString: true }, mode: 'each', options: {} }, position: [1648, -560], notes: 'The pipeline ends here: each batch of two fragments is handed to the Embed and Store Chunks sub-workflow, which embeds them with Gemini and writes them into Supabase over Postgres. executeOnce keeps it to one sub-workflow run per batch.' }
+  config: { name: 'Embed and Store Batches', parameters: { workflowId: { __rl: true, value: 'FYhCiothhv5jVAAZ', mode: 'list', cachedResultUrl: '/workflow/FYhCiothhv5jVAAZ', cachedResultName: 'Embed and Store Chunks' }, workflowInputs: { mappingMode: 'passThrough', value: {}, matchingColumns: ['pageContent'], schema: [], attemptToConvertTypes: false, convertFieldsToString: true }, mode: 'each', options: {} }, position: [1648, -560], notes: 'The pipeline ends here: each batch of two fragments is handed to the Embed and Store Chunks sub-workflow, which embeds them with Gemini and writes them into Supabase over Postgres. executeOnce keeps it to one sub-workflow run per batch.' }
 });
 
 const pace_Between_Batches = node({
@@ -64,11 +58,10 @@ const extract_Text_OCR = node({
   config: { name: 'Extract Text OCR', parameters: { binaryProperty: 'PDF', options: {} }, credentials: { mistralCloudApi: newCredential('Clé mistral n8n', 'DdKsa7Kj2agi9lb9') }, position: [752, -416], notes: 'Optical character recognition for scanned course PDFs. This node previously declared neither resource nor operation, so it had no valid operation at all and could never run. Its answer lands in extractedText, not data.' }
 });
 
-const wf = workflow('47InbFKzNzfmQUZO', 'RAG Ingestion V4', { executionOrder: 'v1', binaryMode: 'separate', availableInMCP: true, description: 'Ingests a course PDF into a pgvector index. Reads the embedded text layer, falls back to Mistral optical character recognition when the PDF is a scan, cleans and chunks the text, embeds each chunk with Gemini, and writes it to Supabase with the metadata the chat needs to cite a source. The RAG Chat workflow queries this index.' });
+const wf = workflow('47InbFKzNzfmQUZO', 'Rag Ingestion', { executionOrder: 'v1', binaryMode: 'separate', availableInMCP: true, description: 'Ingests a course PDF into a pgvector index. Reads the embedded text layer, falls back to Mistral optical character recognition when the PDF is a scan, cleans and chunks the text, embeds each chunk with Gemini, and writes it to Supabase with the metadata the chat needs to cite a source. The RAG Chat workflow queries this index.' });
 
 export default wf
   .add(on_Form_Submission)
-  .to(stash_PDF_as_Base64)
   .to(extract_PDF_Text)
   .to(check_Extracted_Text.onTrue(chunk_and_Normalize_Text
     .to(limit)
