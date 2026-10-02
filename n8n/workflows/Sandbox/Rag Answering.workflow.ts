@@ -1,5 +1,5 @@
 const embeddings_Google_Gemini = embedding({ type: '@n8n/n8n-nodes-langchain.embeddingsGoogleGemini', version: 1, config: { credentials: { googlePalmApi: newCredential('Clé gmail elena', 'odMAexQ4JQr2prvj') }, position: [-128, 528], notes: '3072 dimensions, the same model the ingestion sub-workflow writes with. If these two ever diverge, a question vector can no longer be compared with the stored vectors and the search silently returns nonsense.', notesInFlow: true } });
-const gemini_Flash_Lite = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1, config: { name: 'Gemini Flash Lite', parameters: { modelName: 'models/gemini-2.5-flash-lite', options: {} }, position: [912, 384], notesInFlow: true } });
+const gemini_Flash_Lite = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1, config: { name: 'Gemini Flash Lite', parameters: { modelName: 'models/gemini-2.5-flash-lite', options: { temperature: 0, topP: 0.9 } }, position: [912, 384], notesInFlow: true } });
 
 const course_Questions = trigger({
   type: '@n8n/n8n-nodes-langchain.chatTrigger',
