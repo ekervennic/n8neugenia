@@ -8,6 +8,9 @@ Workflows n8n versioning en code TypeScript (n8n Workflow SDK), via
 | Workflow | ID n8n | Rôle |
 |---|---|---|
 | `Analyse V.I.E. quotidienne` | `xRmMRMGI8bOHBSN4` | Offres V.I.E. quotidiennes, filtrées, notées, écrites dans Google Sheets |
+| `RAG Ingestion V4` | `47InbFKzNzfmQUZO` | Ingestion des PDF de cours (texte natif ou scan) : extraction, chunking, boucle d'insertion |
+| `Embed and Store Chunks` | `FYhCiothhv5jVAAZ` | Sous-workflow d'ingestion : embedding + écriture pgvector via Postgres |
+| `RAG Answer Pipeline` | `SrQI3ph4tDrYWNcH` | Réponse en 5 étapes : contexte, routage, recherche, reranking, génération |
 
 ## Méthode
 
@@ -53,6 +56,103 @@ n8ncli validate    # valide contre les schémas n8n
 
 La config `.n8ncli.json` porte le jeton d'accès : elle est dans `.gitignore`,
 ne jamais la versionner.
+
+## RAG cours (ingestion + réponse)
+
+Ingérer des PDF de cours (texte natif ou scans) dans pgvector, puis répondre
+aux questions en français **uniquement** à partir des fragments retrouvés —
+refus explicite sinon : `Je ne trouve pas cette information dans tes cours.`
+
+Fichiers publiés tels quels depuis n8n, sans modification :
+
+| Fichier | Workflow | ID n8n |
+|---|---|---|
+| [`n8n/workflows/RAG Ingestion V4.workflow.ts`](n8n/workflows/RAG Ingestion V4.workflow.ts) | RAG Ingestion V4 | `47InbFKzNzfmQUZO` |
+| [`n8n/workflows/Embed and Store Chunks.workflow.ts`](n8n/workflows/Embed and Store Chunks.workflow.ts) | Embed and Store Chunks (sous-workflow) | `FYhCiothhv5jVAAZ` |
+| [`n8n/workflows/RAG Answer Pipeline.workflow.ts`](n8n/workflows/RAG Answer Pipeline.workflow.ts) | RAG Answer Pipeline | `SrQI3ph4tDrYWNcH` |
+
+Ils ne contiennent aucun secret : seuls des noms et identifiants de
+credentials n8n y figurent (les secrets restent chiffrés dans l'instance).
+
+### RAG Ingestion V4 — ingestion
+
+```
+Formulaire Course (champ PDF) → Stash PDF as Base64 → Extract PDF Text
+  ├ texte > 0 → Chunk and Normalize Text → Limit → boucle (lots)
+  └ scan      → Rebuild PDF Binary → Mistral OCR → Chunk and Normalize Text
+boucle : Embed and Store Batches (sous-workflow) → Wait 3 s → lot suivant
+```
+
+- **Stash PDF as Base64** : copie le binaire `PDF` en `pdf_base64` (+ nom de
+  fichier) pour pouvoir le reconstruire plus tard.
+- **Extract PDF Text** : lit la couche texte du PDF (`keepSource: both`).
+- **Check Extracted Text** : aiguille vers le chunking si le texte extrait est
+  non vide, vers l'OCR Mistral sinon.
+- **Branche scan** : `Rebuild PDF Binary` reconstruit le binaire depuis la
+  copie base64, `Extract Text OCR` appelle Mistral.
+- **Chunk and Normalize Text** : normalise le texte, découpe en fragments de
+  1200 caractères avec 120 de recouvrement, calcule un `document_id` (hash du
+  contenu) et joint `text`, `chunk_index`, `document_id`, `file_name`,
+  `ingested_at`. Les deux branches y convergent.
+- **Boucle** : `Process in Batches` envoie les fragments par petits lots au
+  sous-workflow `Embed and Store Batches` (`mappingMode: passThrough`,
+  `mode: each`), avec une pause de 3 s (`Pace Between Batches`) entre les lots
+  pour ne pas saturer l'API d'embeddings.
+
+### Embed and Store Chunks — sous-workflow d'écriture
+
+```
+Chunks Received → Store Fragments in Postgres (+ loader, splitter, embeddings)
+```
+
+- **Chunks Received** (`executeWorkflowTrigger`) : déclare les 5 champs
+  transmis par le parent — `text`, `document_id`, `file_name`, `chunk_index`,
+  `ingested_at`.
+- **Store Fragments in Postgres** (`vectorStorePGVector`, `mode: insert`,
+  table `rag_documents`, `embeddingBatchSize: 2`, colonne contenu `content`)
+  via la connexion **Postgres** : écrit les fragments et leurs vecteurs dans
+  Supabase.
+- Sous-nœuds : loader avec les 4 métadonnées, splitter avec 50 de
+  recouvrement, embeddings Gemini (modèle stocké : `models/gemini-embedding-2`).
+
+### RAG Answer Pipeline — réponse en 5 étapes
+
+```
+Question → ① input context → ② routing → ③ search → ④ reranking → ⑤ génération
+```
+
+1. **Input context** : `Contextualise Question` (agent + mémoire `customKey`
+   `answer_pipeline_rewrite`, fenêtre 8) reformule la question en requête
+   autonome sans y répondre (`et lui ?` → `Jean Echenoz`) ;
+   `Read Standalone Query` nettoie le résultat et retombe sur la question
+   d'origine si la reformulation est inutilisable.
+2. **Routing** : `Classify Intent` classe la requête (`exact`, `conceptual`,
+   `global`), `Read Route` valide (défaut `conceptual`), le `Switch` choisit
+   un budget de recherche — termes exacts : 30 plein texte / 6 vecteurs, 4
+   fragments gardés ; conceptuel : 8 / 25, 5 gardés ; document entier :
+   15 / 20, 8 gardés.
+3. **Search** : `Keyword Search` (Postgres, `websearch_to_tsquery('french')`
+   + repli sous-chaîne sur les mots > 3 lettres), `Vector Search` (PGVector,
+   cosinus, un seul appel d'embedding), fusion des deux listes par
+   **Reciprocal Rank Fusion** (`K = 60`).
+4. **Reranking** : liste numérotée → LLM Mistral qui ordonne les numéros →
+   application de l'ordre avec repli sur l'ordre RRF si la réponse est
+   illisible, limitation à `final_k`.
+5. **Génération** : si `fragments_kept > 0`, `Generate Answer` (agent +
+   mémoire `answer_pipeline_chat`) répond depuis les fragments seuls, avec
+   citation du fichier ; sinon `Nothing Found` renvoie le refus exact sans
+   appel modèle.
+
+### Credentials RAG
+
+| Type | Nom | Utilisé par |
+|---|---|---|
+| `mistralCloudApi` | Clé mistral n8n | OCR d'ingestion + 4 étapes LLM du pipeline de réponse |
+| `googlePalmApi` | Gemini clé Elena | Embeddings ingestion et recherche |
+| `postgres` | Postgres Elena clé | Écriture PGVector + recherche plein texte + recherche vectorielle |
+
+Prérequis : la table `rag_documents` (Supabase/pgvector) doit exister avant la
+première ingestion.
 
 ## Analyse V.I.E. quotidienne
 
