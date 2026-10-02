@@ -156,6 +156,10 @@ première ingestion.
 
 ## Analyse V.I.E. quotidienne
 
+Fichier : [`n8n/workflows/Sandbox/Analyse V.I.E. quotidienne.workflow.ts`](n8n/workflows/Sandbox/Analyse V.I.E. quotidienne.workflow.ts)
+(déplacé depuis la racine de `n8n/workflows/` par la synchronisation des
+dossiers n8n).
+
 Récupère chaque jour à 8h les nouvelles offres sur l'API Business France,
 écarte l'Europe, note les restantes sur 10 selon le CV, approfondit les notes
 > 7 et écrit le tout dans un Google Sheet.
@@ -210,7 +214,7 @@ ne suffisent à rien sans l'instance.
 
 ## Avertissement
 
-Le fichier `Analyse V.I.E. quotidienne.workflow.ts` et
+Le fichier `n8n/workflows/Sandbox/Analyse V.I.E. quotidienne.workflow.ts` et
 `Recherche V.I.E.workflow.ts` contiennent une **clé d'API en clair**
 (`X-API-KEY`) vers `civiweb-api-prd.azurewebsites.net`. Elle provient du
 JavaScript public du site officiel et ne donne accès à aucun compte, mais elle
